@@ -18,14 +18,40 @@ client = OpenAI(
     base_url="https://api.deepseek.com"
 )
 
-def fetch_news(keywords):
+def fetch_news(url=None):
+    """从指定 US News 页面抓取新闻标题与链接"""
+    if not url:
+        url = "https://www.usnews.com/topics/subjects/wall-street"
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    }
+    try:
+        resp = requests.get(url, headers=headers, timeout=15)
+        resp.raise_for_status()
+    except Exception as e:
+        print(f"请求网页失败: {e}")
+        return []
+
+    from bs4 import BeautifulSoup
+    soup = BeautifulSoup(resp.text, 'lxml')
+
+    # US News 的新闻列表通常在 <div> 或者 <article> 中，选择器可能随改版变化
+    # 当前常见结构：<a class="Anchor-sc-..."> 包含标题
     articles = []
-    for kw in keywords.split(','):
-        url = f"https://news.google.com/rss/search?q={kw.strip()}&hl=zh-CN&gl=CN&ceid=CN:zh-Hans"
-        feed = feedparser.parse(url)
-        for entry in feed.entries[:5]:
-            articles.append(entry.title + "：" + entry.summary[:200])
-    return articles[:10]
+    # 尝试找到所有带标题的链接
+    for a_tag in soup.select('a[href]'):
+        title = a_tag.get_text(strip=True)
+        href = a_tag.get('href')
+        # 过滤掉太短、非新闻标题的链接
+        if title and len(title) > 25 and '/articles/' in href:
+            full_url = href if href.startswith('http') else f'https://www.usnews.com{href}'
+            articles.append(f"{title} (来源: {full_url})")
+        if len(articles) >= 10:
+            break
+
+    if not articles:
+        print("未找到新闻，可能网站结构已变化，请调整选择器。")
+    return articles
 
 def summarize_news(articles):
     news_text = "\n".join(articles)
