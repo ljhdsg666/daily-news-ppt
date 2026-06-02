@@ -10,47 +10,27 @@ import feedparser
 # 读取配置
 DEEPSEEK_API_KEY = os.environ['DEEPSEEK_API_KEY']
 WECOM_WEBHOOK = os.environ['WECOM_WEBHOOK']
-NEWS_SOURCE = os.environ.get('NEWS_SOURCE', '科技,财经')
 
-# DeepSeek客户端
 client = OpenAI(
     api_key=DEEPSEEK_API_KEY,
     base_url="https://api.deepseek.com"
 )
 
-def fetch_news(url=None):
-    """从指定 US News 页面抓取新闻标题与链接"""
-    if not url:
-        url = "https://www.usnews.com/topics/subjects/wall-street"
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    }
-    try:
-        resp = requests.get(url, headers=headers, timeout=15)
-        resp.raise_for_status()
-    except Exception as e:
-        print(f"请求网页失败: {e}")
-        return []
-
-    from bs4 import BeautifulSoup
-    soup = BeautifulSoup(resp.text, 'lxml')
-
-    # US News 的新闻列表通常在 <div> 或者 <article> 中，选择器可能随改版变化
-    # 当前常见结构：<a class="Anchor-sc-..."> 包含标题
+def fetch_news():
+    """从 Google 新闻 RSS 抓取 US News 上关于 Wall Street 的文章"""
+    # 搜索词：限定在 usnews.com 域名内，关键词为 "wall street"
+    query = "wall street site:usnews.com"
+    url = f"https://news.google.com/rss/search?q={requests.utils.quote(query)}&hl=en-US&gl=US&ceid=US:en"
+    
+    feed = feedparser.parse(url)
     articles = []
-    # 尝试找到所有带标题的链接
-    for a_tag in soup.select('a[href]'):
-        title = a_tag.get_text(strip=True)
-        href = a_tag.get('href')
-        # 过滤掉太短、非新闻标题的链接
-        if title and len(title) > 25 and '/articles/' in href:
-            full_url = href if href.startswith('http') else f'https://www.usnews.com{href}'
-            articles.append(f"{title} (来源: {full_url})")
-        if len(articles) >= 10:
-            break
-
+    for entry in feed.entries[:10]:
+        title = entry.title
+        # 提取来源链接（Google News 的链接会重定向，但保留原始标题即可）
+        articles.append(title)
+    
     if not articles:
-        print("未找到新闻，可能网站结构已变化，请调整选择器。")
+        print("未抓取到新闻，请检查搜索词或网络。")
     return articles
 
 def summarize_news(articles):
@@ -102,8 +82,7 @@ def send_to_wecom(file_path, webhook):
     requests.post(webhook, json=data)
 
 if __name__ == '__main__':
-    keywords = NEWS_SOURCE
-    articles = fetch_news(keywords)
+    articles = fetch_news()
     if not articles:
         print("没有抓到新闻，退出")
         exit(1)
