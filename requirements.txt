@@ -2,3 +2,5 @@ python-pptx
 requests
 openai
 feedparser
+beautifulsoup4
+lxml
