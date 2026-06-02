@@ -1,0 +1,27 @@
+name: 每日新闻PPT推送
+
+on:
+  schedule:
+    - cron: '0 0 * * *'   # 北京时间早上8点
+  workflow_dispatch:       # 允许你手动测试
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: 安装Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: 安装依赖
+        run: pip install -r requirements.txt
+
+      - name: 生成PPT并推送到微信
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          WECOM_WEBHOOK: ${{ secrets.WECOM_WEBHOOK }}
+          NEWS_SOURCE: ${{ secrets.NEWS_SOURCE }}
+        run: python generate_ppt.py
