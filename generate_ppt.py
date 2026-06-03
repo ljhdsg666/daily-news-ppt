@@ -29,7 +29,7 @@ WHITE = RGBColor(255, 255, 255)
 
 # ---------- 1. 抓取新闻（保留原文链接） ----------
 def fetch_news():
-    query = "wall street site:usnews.com"
+    query = "wall street site:usnews.com OR site:cnbc.com OR site:bloomberg.com"
     url = f"https://news.google.com/rss/search?q={requests.utils.quote(query)}&hl=en-US&gl=US&ceid=US:en"
     feed = feedparser.parse(url)
     articles = []
