@@ -1,8 +1,8 @@
 name: 每日新闻PPT推送
 
 on:
-  schedule:
-    - cron: '0 0 * * *'   # 北京时间早上8点
+#   schedule:
+#     - cron: '0 0 * * *'   # 北京时间早上8点
   workflow_dispatch:       # 允许你手动测试
 
 jobs:
